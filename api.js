@@ -13,6 +13,51 @@ const loadBtn   = document.getElementById('load-btn');
 const statusEl  = document.getElementById('status');
 const notesList = document.getElementById('notes-list');
 
+// ===== Render Note =====
+function renderNote(note) {
+  const li    = document.createElement('li');
+  const title = document.createElement('strong');
+  const body  = document.createTextNode(' ' + note.body);
+
+  title.textContent = note.title;
+
+  const delBtn = document.createElement('button');
+  delBtn.textContent = 'Delete';
+  delBtn.className = 'delete-btn';
+
+  const id = note.id;
+
+  delBtn.addEventListener('click', async () => {
+    delBtn.disabled = true;
+
+    try {
+      // JSONPlaceholder is a mock API: POSTed notes are never persisted, so
+      // DELETE /posts/{id} returns 200 even for notes it never stored. We only
+      // call DELETE for notes the server returned, and we remove the item from
+      // the DOM only after a successful response — this mirrors how a real
+      // backend would behave.
+      await request('/' + id, { method: 'DELETE' });
+      li.remove();
+      statusEl.textContent = 'Note deleted.';
+      statusEl.className   = 'success';
+    } catch (err) {
+      statusEl.textContent = 'Failed to delete note. Please try again.';
+      statusEl.className   = 'error';
+      delBtn.disabled      = false;
+    } finally {
+      if (document.body.contains(delBtn)) {
+        delBtn.disabled = false;
+      }
+    }
+  });
+
+  li.appendChild(title);
+  li.appendChild(body);
+  li.appendChild(delBtn);
+
+  return li;
+}
+
 // ===== Load Notes (GET) =====
 async function loadNotes() {
   statusEl.textContent = 'Loading notes...';
@@ -33,14 +78,7 @@ async function loadNotes() {
     }
 
     notes.forEach((note) => {
-      const li    = document.createElement('li');
-      const title = document.createElement('strong');
-      const body  = document.createTextNode(' ' + note.body);
-
-      title.textContent = note.title;
-
-      li.appendChild(title);
-      li.appendChild(body);
+      const li = renderNote(note);
       notesList.appendChild(li);
     });
 
@@ -89,14 +127,7 @@ async function createNote() {
     });
 
     // --- Prepend new note to list ---
-    const li       = document.createElement('li');
-    const titleEl  = document.createElement('strong');
-    const bodyText = document.createTextNode(' ' + note.body);
-
-    titleEl.textContent = note.title;
-
-    li.appendChild(titleEl);
-    li.appendChild(bodyText);
+    const li = renderNote(note);
     notesList.prepend(li);
 
     // --- Success status ---
